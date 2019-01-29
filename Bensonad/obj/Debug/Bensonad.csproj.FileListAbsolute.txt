@@ -1,0 +1,7 @@
+C:\Users\Benson Sanga\Desktop\Bensonad\Bensonad\bin\Bensonad.dll
+C:\Users\Benson Sanga\Desktop\Bensonad\Bensonad\bin\Bensonad.pdb
+C:\Users\Benson Sanga\Desktop\Bensonad\Bensonad\obj\Debug\Bensonad.dll
+C:\Users\Benson Sanga\Desktop\Bensonad\Bensonad\obj\Debug\Bensonad.pdb
+C:\Users\Benson Sanga\Desktop\Bensonad\Bensonad\obj\Debug\Bensonad.Properties.Resources.resources
+C:\Users\Benson Sanga\Desktop\Bensonad\Bensonad\obj\Debug\Bensonad.csproj.GenerateResource.Cache
+C:\Users\Benson Sanga\Desktop\Bensonad\Bensonad\obj\Debug\Bensonad.csprojResolveAssemblyReference.cache
