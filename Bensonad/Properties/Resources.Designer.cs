@@ -83,6 +83,16 @@ namespace Bensonad.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap mesh {
+            get {
+                object obj = ResourceManager.GetObject("mesh", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Point {
             get {
                 object obj = ResourceManager.GetObject("Point", resourceCulture);
