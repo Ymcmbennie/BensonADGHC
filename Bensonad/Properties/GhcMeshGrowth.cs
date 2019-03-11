@@ -2,29 +2,32 @@
 using System.Collections.Generic;
 
 using Grasshopper.Kernel;
+using PlanktonGh;
 using Rhino.Geometry;
 
-namespace Bensonad.Properties
+// In order to load the result of this wizard, you will also need to
+// add the output bin/ folder of this project to the list of loaded
+// folder in Grasshopper.
+// You can use the _GrasshopperDeveloperSettings Rhino command for that.
+
+namespace Bensonad
 {
     public class GhcMeshGrowth : GH_Component
     {
-        //Declaring at a global scope
         private MeshGrowthSystem myMeshGrowthSystem;
-        /// <summary>
-        /// Initializes a new instance of the GhcMeshGrowth class.
-        /// </summary>
+
+
         public GhcMeshGrowth()
-          : base("GhcMeshGrowth",
-                "Mesh Growth",
-                "Start with a base mesh and simulates an organic mesh groth",
+            : base(
+                "BadMeshGrowth",
+                "BadMeshGrowth",
+                "Expand a mesh based on subdivition and avoiding self-collision",
                 "Bad",
-                "MeshGrowth")
+                "BadMeshGrowth")
         {
         }
 
-        /// <summary>
-        /// Registers all the input parameters for this component.
-        /// </summary>
+
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddBooleanParameter("Reset", "Reset", "Reset", GH_ParamAccess.item);
@@ -39,18 +42,13 @@ namespace Bensonad.Properties
             pManager.AddBooleanParameter("Use R-Tree", "Use R-Tree", "Use R-Tree", GH_ParamAccess.item);
         }
 
-        /// <summary>
-        /// Registers all the output parameters for this component.
-        /// </summary>
+
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("Mesh", "Mesh", "Mesh", GH_ParamAccess.item);
         }
 
-        /// <summary>
-        /// This is the method that actually does the work.
-        /// </summary>
-        /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
+
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             bool iReset = true;
@@ -77,36 +75,37 @@ namespace Bensonad.Properties
 
 
             //=============================================================================================
-            if (iReset|| myMeshGrowthSystem==null)
-                myMeshGrowthSystem = new MeshGrowthSystem(iStartingMesh);
 
+            if (iReset || myMeshGrowthSystem == null)
+                myMeshGrowthSystem = new MeshGrowthSystem(iStartingMesh.ToPlanktonMesh());
+
+            myMeshGrowthSystem.Grow = iGrow;
+            myMeshGrowthSystem.MaxVertexCount = iMaxVertexCount;
+            myMeshGrowthSystem.EdgeLengthConstraintWeight = iEdgeLengthConstrainWeight;
             myMeshGrowthSystem.CollisionDistance = iCollisionDistance;
+            myMeshGrowthSystem.CollisionWeight = iCollisionWeight;
+            myMeshGrowthSystem.BendingResistanceWeight = iBendingResistanceWeight;
+            myMeshGrowthSystem.UseRTree = iUseRTree;
 
-            myMeshGrowthSystem.Update();
+            for (int i = 0; i < iSubiterationCount; i++)
+                myMeshGrowthSystem.Update();
 
-            DA.SetData("Mesh", myMeshGrowthSystem.GetRhinoMesh());
-
+            DA.SetData("Mesh", myMeshGrowthSystem.Mesh.ToRhinoMesh());
         }
 
-        /// <summary>
-        /// Provides an Icon for the component.
-        /// </summary>
+
         protected override System.Drawing.Bitmap Icon
         {
             get
             {
-                //You can add image files to your project resources and access them like this:
-                // return Resources.IconForThisComponent;
                 return Properties.Resources.mesh;
             }
         }
 
-        /// <summary>
-        /// Gets the unique ID for this component. Do not change this ID after release.
-        /// </summary>
+
         public override Guid ComponentGuid
         {
-            get { return new Guid("1f33c146-1f46-4549-a619-b14d78ebcda4"); }
+            get { return new Guid("4494b8e5-292e-4d29-a0f2-9935f9e48254"); }
         }
     }
 }

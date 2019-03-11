@@ -7,12 +7,11 @@ using Plankton;
 using PlanktonGh;
 using Rhino.Geometry;
 
-namespace Bensonad.Properties
+namespace Bensonad
 {
     public class MeshGrowthSystem
     {
-
-        private PlanktonMesh ptMesh;
+        public PlanktonMesh Mesh;
 
         public bool Grow = false;
         public int MaxVertexCount;
@@ -27,68 +26,31 @@ namespace Bensonad.Properties
         private List<Vector3d> totalWeightedMoves;
         private List<double> totalWeights;
 
-        public MeshGrowthSystem(Mesh startingMesh)
+        public MeshGrowthSystem(PlanktonMesh startingMesh)
         {
-            ptMesh = startingMesh.ToPlanktonMesh();
-        }
-
-        public Mesh GetRhinoMesh()
-        {
-            return ptMesh.ToRhinoMesh();
+            Mesh = startingMesh;
         }
 
         public void Update()
         {
+            if (Grow) SplitAllLongEdges();
+
             totalWeightedMoves = new List<Vector3d>();
             totalWeights = new List<double>();
 
-            for (int i = 0; i < ptMesh.Vertices.Count; i++)
+            for (int i = 0; i < Mesh.Vertices.Count; i++)
             {
-                totalWeightedMoves.Add(new Vector3d(0, 0, 0));
+                totalWeightedMoves.Add(Vector3d.Zero);
                 totalWeights.Add(0.0);
             }
 
+            ProcessEdgeLengthConstraint();
             ProcessCollision();
 
-
-            UpdateVertexPositions();
+            UpdateVertexPositionsAndVelicities();
         }
 
 
-        private void ProcessCollision()
-        {
-            int vertexCount = ptMesh.Vertices.Count();
-
-            for (int i = 0; i< vertexCount;i++)
-                for (int j = i+1; j< vertexCount;j++)
-                {
-                    Vector3d move = ptMesh.Vertices[j].ToPoint3d() - ptMesh.Vertices[i].ToPoint3d();
-                    double currentDistance = move.Length;
-                    if (currentDistance > CollisionDistance) continue;
-
-                    move *= 0.5 * (currentDistance - CollisionDistance) / currentDistance;
-
-                    totalWeightedMoves[i] += move;
-                    totalWeightedMoves[i] -= move;
-                    totalWeights[i] += 1.0;
-                    totalWeights[j] += 1.0;
-                }
-
-        }
-
-
-        private void UpdateVertexPositions()
-        {
-            for (int i = 0; i< ptMesh.Vertices.Count; i++)
-            {
-                if (totalWeights[i] == 0.0) continue;
-                Vector3d move = totalWeightedMoves[i] / totalWeights[i];
-                Point3d newPosition = ptMesh.Vertices[i].ToPoint3d() + move;
-                ptMesh.Vertices.SetVertex(i, newPosition.X, newPosition.Y, newPosition.Z);
-            }
-        }
-
-        /*
         private void SplitEdge(int edgeIndex)
         {
             int newHalfEdgeIndex = Mesh.Halfedges.SplitEdge(edgeIndex);
@@ -103,7 +65,68 @@ namespace Bensonad.Properties
             if (Mesh.Halfedges[edgeIndex + 1].AdjacentFace >= 0)
                 Mesh.Faces.SplitFace(edgeIndex + 1, Mesh.Halfedges[Mesh.Halfedges[edgeIndex + 1].NextHalfedge].NextHalfedge);
         }
-        */
+
+
+        private void SplitAllLongEdges()
+        {
+            int halfedgeCount = Mesh.Halfedges.Count;
+
+            for (int k = 0; k < halfedgeCount; k += 2)
+                if (Mesh.Vertices.Count < MaxVertexCount &&
+                    Mesh.Halfedges.GetLength(k) > 0.99 * CollisionDistance)
+                {
+                    SplitEdge(k);
+                }
+        }
+
+        private void ProcessEdgeLengthConstraint()
+        {
+            int halfedgeCount = Mesh.Halfedges.Count;
+
+            for (int k = 0; k < halfedgeCount; k += 2)
+            {
+                PlanktonHalfedge halfedge = Mesh.Halfedges[k];
+                int i = halfedge.StartVertex;
+                int j = Mesh.Halfedges[halfedge.NextHalfedge].StartVertex;
+
+                Vector3d d = Mesh.Vertices[j].ToPoint3d() - Mesh.Vertices[i].ToPoint3d();
+                if (d.Length > CollisionDistance)
+                {
+                    Vector3d move = EdgeLengthConstraintWeight * 0.5 * (d);
+                    totalWeightedMoves[i] += move;
+                    totalWeightedMoves[j] -= move;
+                    totalWeights[i] += EdgeLengthConstraintWeight;
+                    totalWeights[j] += EdgeLengthConstraintWeight;
+                }
+            }
+        }
+
+        private void ProcessCollision()
+        {
+            for (int i = 0; i < Mesh.Vertices.Count; i++)
+                for (int j = i + 1; j < Mesh.Vertices.Count; j++)
+                {
+                    Vector3d move = Mesh.Vertices[j].ToPoint3d() - Mesh.Vertices[i].ToPoint3d();
+                    double currentDistance = move.Length;
+                    if (currentDistance > CollisionDistance) continue;
+                    move *= CollisionWeight * 0.5 * (currentDistance - CollisionDistance) / currentDistance;
+                    totalWeightedMoves[i] += move;
+                    totalWeightedMoves[j] -= move;
+                    totalWeights[i] += CollisionWeight;
+                    totalWeights[j] += CollisionWeight;
+                }
+        }
+
+        private void UpdateVertexPositionsAndVelicities()
+        {
+            for (int i = 0; i < Mesh.Vertices.Count; i++)
+            {
+                if (totalWeights[i] == 0) continue;
+                PlanktonVertex vertex = Mesh.Vertices[i];
+                Vector3d move = totalWeightedMoves[i] / totalWeights[i];
+                Mesh.Vertices.SetVertex(i, vertex.X + move.X, vertex.Y + move.Y, vertex.Z + move.Z);
+            }
+        }
     }
 
 }
